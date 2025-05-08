@@ -4,13 +4,6 @@ import { cookies } from "next/headers";
 import { db } from "@/firebase/admin"; // Adjust path as needed
 import bcrypt from "bcryptjs";
 
-// Dummy user validation function (replace with your DB logic)
-async function validateUser1(email, password) {
-  // Replace this with your real user lookup and password check!
-  return email === "test@example.com" && password === "password"
-    ? { id: 1, email }
-    : null;
-}
 
 async function validateUser(email, password) {
   // Query Firestore for the user by email
@@ -32,7 +25,7 @@ async function validateUser(email, password) {
   }
 
   // Return user info (customize as needed)
-  return { id: userDoc.id, email: userData.email };
+  return { id: userDoc.id, email: userData.email, name:userData.name };
 }
 
 export async function POST(request) {
@@ -44,7 +37,7 @@ export async function POST(request) {
   }
 
   // Create JWT
-  const jwt = await new SignJWT({ userId: user.id, email: user.email })
+  const jwt = await new SignJWT({ userId: user.id, email: user.email, name: user.name })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("2h")
