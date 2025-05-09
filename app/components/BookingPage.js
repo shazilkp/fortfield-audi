@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useMemo } from "react";
+import { useRouter,usePathname,useParams } from "next/navigation";
 import {
   format, startOfMonth,
   endOfMonth, isSameDay, eachDayOfInterval,startOfDay,endOfDay
@@ -6,101 +7,7 @@ import {
 import { collection, getDocs, query, where,Timestamp,getDoc,doc,setDoc,updateDoc } from "firebase/firestore";
 import { db } from "@/firebase"; 
 
-
-const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
-    const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [isLoading, setIsLoading] = useState(false);
-  
-    // Get the start and end of the current month
-    const startOfCurrentMonth = startOfMonth(currentMonth);
-    const endOfCurrentMonth = endOfMonth(currentMonth);
-  
-    // Generate an array of all dates in the current month
-    const dates = eachDayOfInterval({
-      start: startOfCurrentMonth,
-      end: endOfCurrentMonth,
-    });
-  
-    // Handler for spinner change
-    const handleMonthChange = (event) => {
-      setIsLoading(true);
-      const newMonthIndex = parseInt(event.target.value, 10);
-      // Create a new date with the selected month and current year
-      const newDate = new Date(currentMonth.getFullYear(), newMonthIndex, 1);
-      setTimeout(() => {
-        setCurrentMonth(newDate);
-        setIsLoading(false);
-      }, 300);
-    };
-  
-    // Handler for year change (optional, for full flexibility)
-    const handleYearChange = (event) => {
-      setIsLoading(true);
-      const newYear = parseInt(event.target.value, 10);
-      const newDate = new Date(newYear, currentMonth.getMonth(), 1);
-      setTimeout(() => {
-        setCurrentMonth(newDate);
-        setIsLoading(false);
-      }, 300);
-    };
-  
-    return (
-      <div className="flex flex-col items-center m-4">
-        <div className="flex items-center justify-center w-full max-w-md mb-4 ">
-          <select
-            value={currentMonth.getMonth()}
-            onChange={handleMonthChange}
-            disabled={isLoading}
-            className="text-lg font-semibold text-slate-700"
-          >
-            {Array.from({ length: 12 }).map((_, index) => (
-              <option key={index} value={index}>
-                {format(new Date(currentMonth.getFullYear(), index, 1), 'MMMM')}
-              </option>
-            ))}
-          </select>
-          <select
-            value={currentMonth.getFullYear()}
-            onChange={handleYearChange}
-            disabled={isLoading}
-            className="ml-4 text-lg font-semibold text-slate-700"
-          >
-            {Array.from({ length: 5 }).map((_, idx) => {
-              const year = new Date().getFullYear() - 2 + idx;
-              return (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-            
-
-        <div className="overflow-x-scroll whitespace-nowrap py-4 px-6 bg-gray-100 rounded-lg w-screen md:w-[50rem]">
-        {dates.map((date) => {
-        const isSelected = selectedDate && isSameDay(date, selectedDate);
-        return (
-          <button
-            key={date.toISOString()}
-            onClick={() => setSelectedDate(date)}
-            className={`inline-block px-4 py-2 mx-2 rounded-lg shadow-md transition ${
-              isSelected
-                ? "bg-blue-500 text-white"
-                : "bg-white text-black hover:bg-blue-500 hover:text-white"
-            }`}
-          >
-            <div className="text-sm font-semibold">{format(date, "EEE")}</div>
-            <div className="text-lg">{format(date, "d")}</div>
-          </button>
-        );
-      })}
-        </div>
-       
-      </div>
-
-    );
-  };
+import ScrollableDateSelector from "./ScrollableDateSelector";
 
   const saveReservation = async (selectedDate, slot, phone,purpose,pax,ac,name,bookingId,setShowModal,adminName) => {
     const formattedDate = format(selectedDate, "yyyy-MM-dd");
@@ -161,8 +68,19 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
     const [name,setName] = useState("");
     const [showModal, setShowModal] = useState(null);
 
+    const router = useRouter();
+
 
     const [selectedSlot, setSelectedSlot] = useState(null);
+    const pathname = usePathname();
+    const params = useParams();
+
+    // Extract date and slot from the URL
+    const { date, slot } = params;
+    const isDetailedRoute = date && slot;
+
+    //console.log(searchParams?.has("date"))
+
   
     const formattedDate = format(selectedDate, "yyyy-MM-dd");
     //console.log("hey",data);
@@ -215,23 +133,30 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
       setPhone("");
       setSelectedSlot(null);
     };
+
+    useEffect(()=> {
+        const slotNo = Number(slot); // → NaN
+        if (!isNaN(slotNo)) {
+            setSelectedSlot(slotNo);
+        }
+        if(date){
+            setSelectedDate(new Date(date));
+        }
+        
+    },[params])
   
     return (
         <div>
-  <div className={`bg-gradient-to-bl from-zinc-200 to-slate-50 p-6 rounded-3xl shadow-lg max-w-sm mx-auto space-y-6 text-gray-800 transition-all duration-300 ${
-          showModal ? "blur-sm pointer-events-none select-none" : ""
-        }`}>
+        <div className={`bg-gradient-to-bl from-zinc-200 to-slate-50 p-6 rounded-3xl shadow-lg max-w-sm mx-auto space-y-6 text-gray-800 transition-all duration-300 ${
+                showModal ? "blur-sm pointer-events-none select-none" : ""
+                }`}>
     
     <h2 className="text-2xl font-semibold tracking-tight relative">
-      Book Slot <span className="block text-base text-gray-500">{format(selectedDate, "PPP")}</span>
-      <button
-        onClick={() => setSelectedDate(null)}
-        className="p-4 absolute top-0 right-0 text-gray-500 hover:text-red-500"
-      >
-        ✕
-      </button>
+      Book Slot <span className="block text-base text-gray-500">{selectedDate?format(selectedDate, "PPP"):"         "}</span>
+      
     </h2>
-
+    {!isDetailedRoute && <ScrollableDateSelector setSelectedDate={setSelectedDate} selectedDate={selectedDate}/>}
+    
     <div className="flex flex-col space-y-2">
       <div className="flex justify-between items-center bg-white rounded-2xl px-4 py-3 shadow-inner space-x-2">
         {[1, 2, 3].map((slot) => {
@@ -339,6 +264,11 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
         onClick={() => {
             setShowModal(false);
             setSelectedDate(null);
+            if(isDetailedRoute){
+                router.push("/dashboard")
+            }
+            
+
 
         }}
         className="mt-4 px-6 py-2 rounded-xl bg-gradient-to-r from-slate-400 to-zinc-900 text-white font-medium hover:from-slate-500 hover:to-zinc-950 transition"
@@ -364,7 +294,7 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
             setSelectedDateData(null);
         }
         
-       // console.log("world")
+        console.log("world")
         const start = Timestamp.fromDate(startOfDay(selectedDate));
         const end = Timestamp.fromDate(endOfDay(selectedDate));
 
@@ -375,9 +305,10 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
         );
 
         const snapshot = await getDocs(q);
+        setSelectedDateData(null);
         snapshot.forEach(doc => {
             const data = doc.data();
-            
+            console.log(data)
             setSelectedDateData(data);
         });
 
@@ -409,23 +340,7 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
     
   
     return (
-        <div className="flex flex-col  justify-center w-screen relative">
-            
-            <div
-            className={`flex flex-col justify-center mx-auto px-4 font-sans min-h-screen transition-all duration-300 ${
-                selectedDate ? "blur-sm pointer-events-none select-none" : ""
-            }`}
-            >
-            <button onClick={() => SetView("home")} className="p-8 absolute top-0 right-0 text-gray-500 hover:text-red-500">
-                ✕
-            </button>
-            <ScrollableDateSelector setSelectedDate={setSelectedDate} selectedDate={selectedDate}/>
-            </div>
-
-            
-            {selectedDate && (
-            
-                <div className="fixed inset-0 flex justify-center items-center">
+        <div className="">
                 <BookingCard
                     selectedDate={selectedDate}
                     setSelectedDate={setSelectedDate}
@@ -438,8 +353,6 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
                     }}
                 />
                 </div>
-            )}
-        </div>
     );
 
   };
