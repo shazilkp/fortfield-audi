@@ -10,7 +10,10 @@ const Dashboard = () => {
   const [view,SetView] = useState("home");
   
 
-  return (<div >
+  return (
+    
+  <div >
+    <title></title>
       <CalendarPage SetView={SetView}/>
     
   </div>);

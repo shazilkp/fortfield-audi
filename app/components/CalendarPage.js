@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import { useRouter } from 'next/navigation';
+import BookingSearch from "./BookingSearch";
 import {
   addMonths, subMonths, format, startOfMonth,
   endOfMonth, startOfWeek, endOfWeek, addDays,
@@ -7,6 +8,7 @@ import {
 } from "date-fns";
 import { collection, getDocs, query, where,Timestamp } from "firebase/firestore";
 import { db } from "@/firebase"; 
+import { Cardo } from "next/font/google";
 
 
 const CalendarPage = ({SetView}) => {
@@ -15,11 +17,15 @@ const CalendarPage = ({SetView}) => {
   const [reservations, setReservations] = useState({});
   const [selectedDateData,setSelectedDateData] = useState(null);
   const [cardOpen,setCardOpen] = useState(false);
+  const [searchOpen,setSearchOpen] = useState(false);
 
   const router = useRouter();
+  const cardRef = useRef();
 
-  const ReservationCard = ({ data }) => {
-   
+  const ReservationCard = ({ data,setCardOpen }) => {
+    
+
+
     const {
       date = null,
       slot1 = {},
@@ -33,7 +39,7 @@ const CalendarPage = ({SetView}) => {
     }
   
     const renderSlot = (title, slotData, slotNo) => (
-        <div className="bg-white rounded-2xl p-5 shadow-inner shadow-purple-200 space-y-4 border border-gray-100">
+        <div className="bg-white/50 backdrop-blur-2xl rounded-2xl p-5 inset-shadow-2xs inset-shadow-gray-400 space-y-4 ">
             <span className="flex flex-row justify-between items-center">
                 <h3 className="text-base font-semibold text-gray-800">{title}</h3>
                 <p className="text-slate-500 text-xs ">{slotData?.bookingId || "—"}</p>
@@ -69,7 +75,7 @@ const CalendarPage = ({SetView}) => {
               router.push(str)
             }
             }
-            className="flex-1 text-white bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 font-medium rounded-full text-sm py-1.5 text-center dark:focus:ring-yellow-900 disabled:bg-gray-300 disabled:text-gray-500"
+            className="flex-1 text-white bg-[#7B3FE4] hover:bg-[#7B3FE4]/90 focus:outline-none  font-medium rounded-full text-sm py-1.5 text-center  disabled:bg-gray-400 disabled:text-gray-700"
           >
             Book
           </button>
@@ -77,7 +83,7 @@ const CalendarPage = ({SetView}) => {
           <button
             type="button"
             disabled={!slotData?.mobileNo && !slotData?.name}
-            className="flex-1 text-white bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 font-medium rounded-full text-sm py-1.5 text-center dark:focus:ring-yellow-900 disabled:bg-gray-300 disabled:text-gray-500"
+            className="flex-1 text-white bg-[#7B3FE4] hover:bg-[#7B3FE4]/90 focus:outline-none  font-medium rounded-full text-sm py-1.5 text-center  disabled:bg-gray-400 disabled:text-gray-700"
             onClick={() => {
               const str = `/cancel/${format(new Date(selectedDate), "yyyy-MM-dd")}/${slotNo}`;
               router.push(str)
@@ -91,14 +97,14 @@ const CalendarPage = ({SetView}) => {
       
   
       return (
-        <div className=" flex flex-col max-w-lg mx-auto my-6 p-4 bg-gradient-to-b from-zinc-200 to-slate-50 rounded-2xl shadow-2xl space-y-11 border border-gray-200 min-w-xs">
+        <div className=" flex flex-col max-w-lg mx-auto my-6 p-4 backdrop-blur-2xl bg-white/20 rounded-2xl shadow-2xl space-y-3 border border-gray-200 min-w-xs">
           <div className="flex flex-row justify-between">
-            <h2 className="text-lg font-bold text-gray-800">
+            <h2 className="text-lg font-bold text-gray-100">
               {selectedDate}
             </h2>
             <button
                 onClick={() => setCardOpen(false)}
-                className=" text-gray-500 hover:text-red-500"
+                className=" text-white hover:text-red-500"
               >
                 ✕
               </button>
@@ -106,7 +112,7 @@ const CalendarPage = ({SetView}) => {
   
           {indi && renderSlot("Slot 1", slot1,1)}
           {indi && renderSlot("Slot 2", slot2,2)}
-          {!indi && renderSlot("Full Day", fullDay,3)}
+          {(!indi || !data) && renderSlot("Full Day", fullDay,3)}
         </div>
       );
   };
@@ -137,25 +143,87 @@ const CalendarPage = ({SetView}) => {
   };
 
   useEffect(() => {
+    function handleClickOutside(event) {
+      if (cardRef.current && !cardRef.current.contains(event.target)) {
+        setCardOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [setCardOpen]);
+
+  useEffect(() => {
     fetchReservations();
   }, [currentMonth]);
 
   const header = () => (
     <div className="flex justify-between items-center mb-4 ">
-      <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>←</button>
-      <h2 className="text-lg font-semibold text-gray-700">
+      <button className="text-white/40" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>←</button>
+      <h2 className="text-lg font-semibold text-fuchsia-50">
         {format(currentMonth, "MMMM yyyy")}
       </h2>
       <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>→</button>
     </div>
   );
 
+  const Header = () => {
+    const [touchStartX, setTouchStartX] = useState(null);
+  
+    const handleTouchStart = (e) => {
+      setTouchStartX(e.touches[0].clientX);
+    };
+  
+    const handleTouchEnd = (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const deltaX = touchEndX - touchStartX;
+  
+      if (Math.abs(deltaX) > 50) {
+        if (deltaX > 0) {
+          // Swiped right – go to previous month
+          setCurrentMonth(subMonths(currentMonth, 1));
+        } else {
+          // Swiped left – go to next month
+          setCurrentMonth(addMonths(currentMonth, 1));
+        }
+      }
+  
+      setTouchStartX(null);
+    };
+  
+    return (
+      <div
+        className="flex justify-between items-center mb-4 touch-pan-x"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <button
+          className="text-white/70 text-2xl sm:text-base"
+          onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+        >
+          ←
+        </button>
+        <h2 className="text-lg font-semibold text-fuchsia-50">
+          {format(currentMonth, "MMMM yyyy")}
+        </h2>
+        <button
+          className="text-white/70 text-2xl sm:text-base"
+          onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+        >
+          →
+        </button>
+      </div>
+    );
+  };
+
   const daysOfWeek = () => {
     const start = startOfWeek(currentMonth);
     return (
       <div className="grid grid-cols-7 mb-2">
         {[...Array(7)].map((_, i) => (
-          <div key={i} className="text-center text-xs uppercase text-[#003e3e]">
+          <div key={i} className="text-center text-xs uppercase text-amber-50">
             {format(addDays(start, i), "EEEEE")}
           </div>
         ))}
@@ -225,23 +293,40 @@ const CalendarPage = ({SetView}) => {
         const isToday = isSameDay(day, new Date());
         const isCurrentMonth = isSameMonth(day, monthStart);
         
-        let textColor = "text-black"
+        let textColor = "text-white"
         
         if(!isCurrentMonth){
-          textColor = "text-gray-400"
+          textColor = "text-white/40"
         }
-        let bgColor = "bg-white";
-        let topColor = "fill-white";
-        let bottomColor = "bg-white"
+
+        let bgColor = "bg-white/20";
+        let topColor = "";
+        let bottomColor = ""
 
         
         if (res?.fullDay && (res?.fullDay.name || res?.fullDay.mobileNo)) {
-          topColor = "fill-red-500";  
-          bottomColor = "bg-red-500";  
+          //topColor = "bg-red-500/70";  
+          //bottomColor = "bg-red-500/70";  
+          bgColor = " bg-red-600/90"
         }    // both slots booked
-        if (res?.slot1 && (res?.slot1.name || res?.slot1.mobileNo)) topColor = "fill-yellow-400"; // one slot booked
-        if (res?.slot2 && (res?.slot2.name || res?.slot2.mobileNo)) bottomColor = "bg-green-400";
-        if (isToday) bottomColor += " ring-2";
+      
+        if (res?.slot1 && (res?.slot1.name || res?.slot1.mobileNo)) {
+          topColor = "bg-lime-400/90"; // one slot booked
+          bgColor= "";
+          bottomColor = "bg-white/20"
+    
+        }
+        if (res?.slot2 && (res?.slot2.name || res?.slot2.mobileNo)) {
+    
+          bottomColor = "bg-[#ffd468]/90";
+          bgColor = ""
+          if(topColor === ""){
+            topColor = "bg-white/20"
+          }
+        }
+        
+        if (isToday) bgColor += " ring-2 ring-white";
+        
 
         days.push(
           
@@ -251,31 +336,30 @@ const CalendarPage = ({SetView}) => {
             setSelectedDate(format(new Date(dateStr),"d MMMM yyyy"));
           }
           } 
-            className={`relative text-center py-2 aspect-square rounded-full ${bottomColor} overflow-hidden text-sm min-h-4  transition-all duration-200`}
+            className={`relative text-center py-2  aspect-square rounded-full border border-white/20 ${bgColor} overflow-hidden text-sm min-h-4  transition-all duration-200`}
           >
             {/* Top Half */}
             
-            <div className={`absolute top-0 left-0 w-full  h-1/2 flex justify-center items-center transition-all duration-150`}>
-                <svg data-name="Layer 1" viewBox="0 0 1200 1200"  xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className={`${topColor}`}>
-                  <rect width="1300" height="805"  />
-                  <g transform="translate(1200, 84)">
-                  <rect width="100" height="805"  />
-                  </g>
-                  <g transform="translate(0, 800)">
-                    <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" 
-                    ></path>
-                    </g>
-                </svg>
-            </div>
-              {/* Optional: You can add top content here */}
-          
-            
 
-            {/* Bottom Half */}
+          <div className={`absolute top-0 left-0 w-full h-1/2 ${topColor} overflow-hidden flex flex-col justify-center`}>
+          <div></div>
             
+          </div>
+
+
+          <div className={`absolute top-1/2 left-0 w-full h-1/2 ${bottomColor} overflow-hidden flex flex-col justify-center`}>
+          <div></div>
+           
+          </div>
+
+{/* Bottom Wave (mirrored version) */}
+
+
+
+
 
             {/* Centered Text */}
-            <div className={`absolute inset-0 text-[0.8rem] flex justify-center ${textColor} items-center`}>
+            <div className={`absolute  inset-0 text-[0.8rem] flex justify-center text-white text-shadow-2xs text-shadow-blue-950 items-center`}>
               {format(day, "d")}
             </div>
           </div>
@@ -296,31 +380,38 @@ const CalendarPage = ({SetView}) => {
   };
 
   return (
-    <div className="relative">
-     
+    <div className="relative  mx-auto min-h-svh">
+      <div className={`bg-center bg-cover bg-gradient-to-r from-green-50 to-sky-100 w-full h-full absolute transition-all duration-300 inset-0 z-0
+      ${cardOpen || searchOpen ? "blur-md" : ""}
+    `}
+     style={{ backgroundImage: "url('/11.jpg')" }}></div>
       <div
-        className={`flex flex-col justify-around max-w-md mx-auto bg-gradient-to-r from-green-50 to-sky-100 py-2.5 px-4 font-sans min-h-svh transition-all duration-300 ${
-          cardOpen ? "blur-sm pointer-events-none select-none" : ""
+        
+        className={`flex flex-col bg-center bg-cover justify-around max-w-md mx-auto py-2.5 px-4 font-sans min-h-svh transition-all duration-300 ${
+          cardOpen ? "blur-md pointer-events-none select-none" : ""
         }`}
       >
 
-        <div className="flex flex-col justify-baseline space-y-8 -mt-11">
-        <div className="flex flex-row justify-center">
-          <div className="w-24 h-14  flex items-center justify-center bg-gray-100 border-2 border-dashed border-gray-400 rounded-lg text-gray-500 text-sm">
-            Logo
-          </div>
+        <div className="flex flex-col justify-baseline space-y-8 -mt-11 z-10">
+        <div className="flex flex-col items-center  justify-center">
+        <img
+          src="/breeze-logo.png"
+          alt="Logo"
+          className="w-48"
+        />
+
         </div>
 
-        <input
-          type="text"
-          placeholder="Enter phone number"
-          className="rounded-4xl text-sm px-3 py-2 w-full bg-white shadow-2xl"
-        />
+        <BookingSearch setSearchOpen={setSearchOpen}></BookingSearch>
         
         
-
-        <div className="shadow-2xl p-4 rounded-2xl bg-white ">
-          {header()}
+        
+        
+        <div  
+        className={`shadow-xl p-4 rounded-2xl bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20 inset-shadow-md inset-shadow-white/50 ${
+          searchOpen ? "blur-md pointer-events-none select-none" : ""
+        }`}>
+          {Header()}
           {daysOfWeek()}
           {calendarCells(setSelectedDateData,setCardOpen,setSelectedDate)}
         </div>
@@ -329,11 +420,14 @@ const CalendarPage = ({SetView}) => {
       
         
 
-        <div className="flex justify-between items-center gap-x-4">
+        <div 
+          className={`flex justify-between items-center gap-x-4 transition-all duration-300 ${
+            searchOpen ? "blur-md pointer-events-none select-none" : ""
+          }`}>
           <button
             type="button"
             onClick={() => router.push("/booking")}
-            className="flex-1 text-white bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 font-medium rounded-full text-sm py-3.5 text-center dark:focus:ring-yellow-900"
+            className="flex-1 text-white bg-white/20 hover:bg-white/40 backdrop-blur-sm  border border-white/20 focus:outline-none  font-medium rounded-full text-sm py-3.5 text-center"
           >
             Book
           </button>
@@ -341,19 +435,23 @@ const CalendarPage = ({SetView}) => {
           <button
             type="button"
             onClick={() => router.push("/cancel")}
-            className="flex-1 text-white bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 font-medium rounded-full text-sm py-3.5 text-center dark:focus:ring-yellow-900"
+            className="flex-1 text-white bg-white/20 hover:bg-white/40 backdrop-blur-sm  border border-white/20 focus:outline-none  font-medium rounded-full text-sm py-3.5 text-center "
           >
             Cancel Booking
           </button>
         </div>
 
       </div>
+      
 
       {/* Overlayed Reservation Card */}
       {cardOpen && (
         
             <div className="fixed inset-0 flex justify-center items-center">
-            <ReservationCard data={selectedDateData} />
+              <div ref={cardRef}>
+                <ReservationCard data={selectedDateData} setCardOpen={setCardOpen}/>
+              </div>
+            
             </div>
 
       )}
@@ -367,3 +465,17 @@ const CalendarPage = ({SetView}) => {
 
 
 export default CalendarPage;
+
+
+/*
+<svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+        <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" class="shape-fill"> </path>
+    </svg>
+
+
+
+
+<svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+        <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" class="shape-fill"></path>
+    </svg>
+    */

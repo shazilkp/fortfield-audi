@@ -7,28 +7,47 @@ import {
 import { collection, getDocs, query, where,Timestamp,getDoc,doc,setDoc,updateDoc } from "firebase/firestore";
 import { db } from "@/firebase"; 
 
+import { writeBatch } from "firebase/firestore"; 
+
 import ScrollableDateSelector from "./ScrollableDateSelector";
 
-  const saveReservation = async (selectedDate, slot, phone,purpose,pax,ac,name,bookingId,setShowModal,adminName) => {
+const saveReservation = async (
+    selectedDate,
+    slot,
+    phone,
+    purpose,
+    pax,
+    ac,
+    name,
+    bookingId,
+    setShowModal,
+    adminName
+  ) => {
     const formattedDate = format(selectedDate, "yyyy-MM-dd");
     const docRef = doc(db, "reservations", formattedDate);
-    let slotKey= "";
-    if(slot === 1){
-        slotKey = "slot1";
+    const indexRef = doc(db, "bookingsIndex", bookingId); // Reference to the bookingsIndex collection
+  
+    let slotKey = "";
+    if (slot === 1) {
+      slotKey = "slot1";
     }
-    if(slot == 2){
-        slotKey = "slot2";
+    if (slot === 2) {
+      slotKey = "slot2";
     }
-    if(slot == 3){
-        slotKey = "fullDay";
+    if (slot === 3) {
+      slotKey = "fullDay";
     }
   
+    // Start a batch write
+    const batch = writeBatch(db);
+  
     try {
+      // Reference the document in the reservations collection
       const docSnap = await getDoc(docRef);
   
       if (!docSnap.exists()) {
-        // Create the document with empty slot objects
-        await setDoc(docRef, {
+        // Create the document with empty slot objects if the date doesn't exist yet
+        batch.set(docRef, {
           date: Timestamp.fromDate(selectedDate),
           slot1: {},
           slot2: {},
@@ -36,8 +55,8 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
         });
       }
   
-      // Update only the specified slot
-      await updateDoc(docRef, {
+      // Update the specified slot in the reservations collection
+      batch.update(docRef, {
         [slotKey]: {
           bookingId: bookingId,
           mobileNo: phone,
@@ -46,9 +65,20 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
           purpose: purpose,
           bookingTimestamp: Timestamp.fromDate(new Date()),
           bookedBy: adminName,
-          ac: ac
+          ac: ac,
         },
       });
+  
+      // Now, update the bookingsIndex with the minimal metadata
+      batch.set(indexRef, {
+        bookingId: bookingId,
+        mobileNo: phone,
+        slot: slotKey,
+        date: formattedDate,
+      });
+  
+      // Commit the batch to execute all writes atomically
+      await batch.commit();
   
       console.log("Reservation saved successfully");
       setShowModal(bookingId);
@@ -57,6 +87,7 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
       setShowModal(bookingId);
     }
   };
+  
 
 
   const BookingCard = ({ selectedDate,setSelectedDate, data, onBook }) => {
@@ -147,18 +178,18 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
   
     return (
         <div>
-        <div className={`bg-gradient-to-bl from-zinc-200 to-slate-50 p-6 rounded-3xl shadow-lg max-w-sm mx-auto space-y-6 text-gray-800 transition-all duration-300 ${
+        <div className={`backdrop-blur-xl bg-white/20 p-6 rounded-3xl shadow-lg max-w-sm mx-auto space-y-6 text-gray-800 transition-all duration-300 ${
                 showModal ? "blur-sm pointer-events-none select-none" : ""
                 }`}>
     
-    <h2 className="text-2xl font-semibold tracking-tight relative">
-      Book Slot <span className="block text-base text-gray-500">{selectedDate?format(selectedDate, "PPP"):"         "}</span>
+    <h2 className="text-2xl text-white font-semibold tracking-tight relative">
+      Book Slot <span className="block text-base text-gray-300">{selectedDate?format(selectedDate, "PPP"):"         "}</span>
       
     </h2>
     {!isDetailedRoute && <ScrollableDateSelector setSelectedDate={setSelectedDate} selectedDate={selectedDate}/>}
     
     <div className="flex flex-col space-y-2">
-      <div className="flex justify-between items-center bg-white rounded-2xl px-4 py-3 shadow-inner space-x-2">
+      <div className="flex justify-between items-center backdrop-blur-md rounded-full border border-white/20 px-4 py-3 shadow-inner space-x-2">
         {[1, 2, 3].map((slot) => {
           const label = slot === 3 ? "Full Day" : `Slot ${slot}`;
           return (
@@ -166,12 +197,12 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
               key={slot}
               disabled={isSlotBooked(slot)}
               onClick={() => setSelectedSlot(slot)}
-              className={`text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200 ${
+              className={`text-sm  font-medium px-4 py-2 rounded-full transition-all duration-200 ${
                 isSlotBooked(slot)
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-black/20 text-gray-400 cursor-not-allowed"
                   : selectedSlot === slot
-                  ? "bg-gradient-to-tr from-slate-400 to-zinc-900 text-white shadow-md"
-                  : "bg-white text-gray-700 hover:bg-slate-100"
+                  ? "bg-white  shadow-md border border-white/40"
+                  : "bg-white/30  shadow-md  text-gray-700 hover:bg-white/50"
               }`}
             >
               {label}
@@ -184,67 +215,80 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
       </span>
     </div>
 
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-gray-700">Name</label>
+    <div className="flex flex-col gap-2 ">
+      
       <input
         type="text"
-        placeholder="Enter name"
+        placeholder="Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white shadow-inner"
+        className="backdrop-blur-md w-full text-sm  text-black px-5 py-3 rounded-full border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400/40 bg-white/20 shadow-inner"
       />
     </div>
 
     <div className="space-y-2">
-      <label className="text-sm font-medium text-gray-700">Phone Number</label>
+     
       <input
         type="text"
         placeholder="Enter phone number"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
-        className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white shadow-inner"
+        className="backdrop-blur-md w-full text-sm px-5 py-3 rounded-full border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400/40 bg-white/20 shadow-inner"
       />
     </div>
 
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-gray-700">Purpose</label>
-      <select
-        value={purpose}
-        onChange={(e) => setPurpose(e.target.value)}
-        className="w-full px-4 py-2 rounded-xl border border-gray-300 bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-purple-400"
-      >
-        <option value="">Select purpose</option>
-        <option value="meeting">Meeting</option>
-        <option value="event">Event</option>
-        <option value="class">Class</option>
-      </select>
-    </div>
+    <div className="flex flex-row gap-7 items-center">
+      
+      
 
-    <div className="flex items-center justify-between">
-      <label className="text-sm font-medium text-gray-700">AC Required</label>
-      <input
-        type="checkbox"
-        checked={ac}
-        onChange={() => setAc(!ac)}
-        className="w-5 h-5 accent-purple-600"
-      />
-    </div>
-
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-gray-700">Number of Extra People (Pax)</label>
+      <div className="space-y-2">
+      <label className="text-sm px-3 font-medium text-white">Pax</label>
       <input
         type="number"
         value={pax}
         onChange={(e) => setPax(e.target.value)}
         min="1"
-        className="w-full px-4 py-2 rounded-xl border border-gray-300 bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-purple-400"
+        className="backdrop-blur-md  text-black w-full text-sm px-5 py-3 rounded-full border border-white/20 focus:outline-none no-spinner focus:ring-2 focus:ring-purple-400/40 bg-white/20 shadow-inner backdrop-opacity-40"
       />
     </div>
+
+      <div className="ml-3 flex flex-col space-y-2 items-center text-xs font-medium text-gray-700">
+        <label className="text-sm font-medium text-white">AC?</label>
+            <button
+            onClick={() =>
+                setAc(!ac)
+            }
+            className={`w-10 h-5 flex items-center bg-gray-300 rounded-full p-1 transition-colors duration-300 ${
+                ac ? "bg-purple-400/40" : "bg-blue-400"
+            }`}
+            >
+            <div
+                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${
+                ac ? "translate-x-5" : ""
+                }`}
+            />
+            </button>
+            
+        </div>
+    </div>
+
+    {/* Toggle Switch */}
+    <select
+        value={purpose}
+        onChange={(e) => setPurpose(e.target.value)}
+        className="backdrop-blur-md w-full text-sm px-5 py-3 text-black rounded-full border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400/40 bg-white/20 shadow-inner"
+      >
+        <option value="">Select purpose</option>
+        <option value="meeting">Meeting</option>
+        <option value="event">Event</option>
+        <option value="class">Class</option>
+    </select>
+
 
     <button
       onClick={handleBooking}
       disabled={!phone || !selectedSlot || !name || !purpose}
-      className="w-full py-3 rounded-xl text-white font-semibold bg-gradient-to-r from-slate-400 to-zinc-900 hover:from-slate-500 hover:to-zinc-950 transition disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full py-3 rounded-full font-semibold text-black bg-white hover:bg-white hover:text-black  transition disabled:opacity-60 disabled:cursor-not-allowed"
     >
       Book Slot
     </button>
@@ -257,9 +301,9 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
   </div>
   {showModal && (
   <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-lg text-center space-y-4">
-      <h3 className="text-xl font-semibold text-gray-800">Booking Confirmed</h3>
-      <p className="text-sm text-gray-600">Your slot has been booked successfully with booking ID {showModal}.</p>
+    <div className="bg-white/40 rounded-3xl p-6 max-w-sm w-full shadow-lg text-center space-y-4 ">
+      <h3 className="text-xl font-semibold text-black">Booking Confirmed</h3>
+      <p className="text-sm text-gray-900">Your slot has been booked successfully with booking ID {showModal}.</p>
       <button
         onClick={() => {
             setShowModal(false);
@@ -271,7 +315,7 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
 
 
         }}
-        className="mt-4 px-6 py-2 rounded-xl bg-gradient-to-r from-slate-400 to-zinc-900 text-white font-medium hover:from-slate-500 hover:to-zinc-950 transition"
+        className="mt-4 px-6 py-2 rounded-full bg-white text-black font-semibold hover:text-white hover:bg-white/40 transition"
       >
         Close
       </button>
@@ -340,7 +384,9 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
     
   
     return (
-        <div className="">
+        <div className="flex flex-col justify-center bg-center bg-cover bg-repeat-space bg-gradient-to-bl from-[#0f172a] via-[#1e1a78] to-[#0f172a] min-h-screen h-max px-3"
+            style={{ backgroundImage: "url('/3.png')" }}
+        >
                 <BookingCard
                     selectedDate={selectedDate}
                     setSelectedDate={setSelectedDate}

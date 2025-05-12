@@ -44,13 +44,13 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
     };
   
     return (
-      <div className="flex flex-col items-center  bg-white rounded-2xl p-2 ">
+      <div className="flex flex-col items-center  bg-white/40 rounded-2xl p-2 ">
         <div className="flex items-center justify-center  w-full max-w-md mb-4 ">
           <select
             value={currentMonth.getMonth()}
             onChange={handleMonthChange}
             disabled={isLoading}
-            className="text-lg  p-2 font-semibold rounded-xl text-slate-700"
+            className="text-lg  p-2 font-semibold rounded-xl text-black"
           >
             {Array.from({ length: 12 }).map((_, index) => (
               <option key={index} value={index}>
@@ -62,7 +62,7 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
             value={currentMonth.getFullYear()}
             onChange={handleYearChange}
             disabled={isLoading}
-            className="ml-4 text-lg  p-2 font-semibold rounded-xl text-slate-700"
+            className="ml-4 text-lg  p-2 font-semibold rounded-xl text-black"
           >
             {Array.from({ length: 5 }).map((_, idx) => {
               const year = new Date().getFullYear() - 2 + idx;
@@ -76,17 +76,17 @@ const ScrollableDateSelector = ({ selectedDate,setSelectedDate }) => {
         </div>
             
 
-        <div className="overflow-x-scroll whitespace-nowrap py-4 px-6 bg-white no-scrollbar rounded-2xl w-full ">
+        <div className="overflow-x-scroll whitespace-nowrap py-4 px-6  no-scrollbar rounded-2xl w-full ">
         {dates.map((date) => {
         const isSelected = selectedDate && isSameDay(date, selectedDate);
         return (
           <button
             key={date.toISOString()}
             onClick={() => setSelectedDate(date)}
-            className={`inline-block px-4 py-2 mx-2 rounded-lg shadow-md transition ${
+            className={`inline-block px-4 w-14 py-2 mx-2 rounded-lg shadow-md transition ${
               isSelected
-                ? "bg-gradient-to-tr from-slate-400 to-zinc-900 text-white shadow-md"
-                : " text-gray-700 hover:bg-slate-100"
+                ? "inset-shadow-2xs bg-gradient-to-r from-slate-50 via-stone-100 to-neutral-100"
+                : " bg-white/50 text-gray-700 hover:bg-slate-100"
             }`}
           >
             <div className="text-sm font-semibold">{format(date, "EEE")}</div>

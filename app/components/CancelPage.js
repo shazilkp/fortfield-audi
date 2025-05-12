@@ -6,24 +6,57 @@ import {
 } from "date-fns";
 import { collection, getDocs, query, where,Timestamp,getDoc,doc,setDoc,updateDoc } from "firebase/firestore";
 import { db } from "@/firebase"; 
+import { writeBatch } from "firebase/firestore"; 
 
 import ScrollableDateSelector from "./ScrollableDateSelector";
 
-  const cancelSlot = async (selectedDate, slot,setShowModal) => {
-    const slotKey = slot == 3 ? "fullDay" : `slot${slot}`;
-    console.log(selectedDate,slotKey)
+const cancelSlot = async (selectedDate, slot, setShowModal) => {
+    const slotKey = slot === 3 ? "fullDay" : `slot${slot}`;
+    console.log(selectedDate, slotKey);
     const reservationId = format(selectedDate, "yyyy-MM-dd");
+  
+  
+    // Start a new batch for write operations
+    const batch = writeBatch(db);
+  
+    const reservationRef = doc(db, "reservations", reservationId);
+  
     try {
-      await updateDoc(doc(db, "reservations", reservationId), {
-        [slotKey]: {}, // set the field to an empty object
-      });
-      console.log(`Slot "${slotKey}" reset to empty object.`);
-      setShowModal(reservationId);
+      // Get the reservation document to retrieve the bookingIndex
+      const reservationSnap = await getDoc(reservationRef);
+  
+      if (reservationSnap.exists()) {
+        // Extract the bookingIndex from the specified slot
+        const slotData = reservationSnap.data()[slotKey];
+        const bookingIndex = slotData?.bookingId;
+  
+        if (bookingIndex) {
+          // Prepare the reference to the corresponding document in the bookingIndex collection
+          const bookingIndexRef = doc(db, "bookingsIndex", bookingIndex);
+  
+          // Add a delete operation to remove the booking index document
+          batch.delete(bookingIndexRef);
+        }
+  
+        // Add the update operation to reset the slot in the reservations collection
+        batch.update(reservationRef, {
+          [slotKey]: {}, // set the slot field to an empty object
+        });
+  
+        // Commit the batch, ensuring atomicity
+        await batch.commit();
+  
+        console.log(`Slot "${slotKey}" reset to empty object.`);
+        setShowModal(reservationId);
+      } else {
+        console.log("Reservation not found.");
+      }
     } catch (error) {
       console.error("Error updating slot: ", error);
       setShowModal(reservationId);
     }
   };
+  
 
 
   const CancelCard = ({ selectedDate,setSelectedDate, data, onCancel }) => {
@@ -49,24 +82,24 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
         console.log("trrr",slotKey)
 
         return(
-            <div className="bg-white rounded-2xl p-5 shadow-inner shadow-purple-200 space-y-4 border border-gray-100">
+            <div className="backdrop-blur-md text-white rounded-2xl p-5 inset-shadow-2xs space-y-4 border border-white/20">
                 <span className="flex flex-row justify-between items-center">
-                    <p className="text-slate-500 text-xs ">{slotData?.bookingId || "—"}</p>
+                    <p className="text-xs text-gray-200">{slotData?.bookingId || "—"}</p>
                 </span>
               
           
-              <div className="flex justify-between text-sm text-gray-700">
+              <div className="flex justify-between text-sm ">
                 <div>
-                  <p className="font-medium">{slotData?.name || "—"}</p>
-                  <p className="text-gray-500">{slotData?.mobileNo || "—"}</p>
+                  <p className="text-lg font-bold text-white">{slotData?.name || "—"}</p>
+                  <p className="text-md">{slotData?.mobileNo || "—"}</p>
                 </div>
                 <div className="text-right">
-                  <p>{slotData?.purpose || "—"}</p>
-                  <p className="text-xs text-gray-400">{slotData?.pax || 0} PAX</p>
+                  <p className="font-semibold ">{slotData?.purpose || "—"}</p>
+                  <p className="text-xs ">{slotData?.pax || 0} PAX</p>
                 </div>
               </div>
           
-              <div className="flex justify-between items-center text-xs text-gray-500 border-t pt-3">
+              <div className="flex justify-between items-center text-xs border-t text-gray-200 border-white/30 pt-3">
                 <span className="italic">{slotData?.bookedBy || "—"}</span>
                 <span>
                   {slotData?.bookingTimestamp
@@ -146,18 +179,18 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
   
     return (
         <div>
-        <div className={`bg-gradient-to-bl from-zinc-200 to-slate-50 p-6 rounded-3xl shadow-lg max-w-sm mx-auto space-y-6 text-gray-800 transition-all duration-300 ${
+        <div className={`backdrop-blur-xl bg-white/20 p-6 rounded-3xl shadow-lg max-w-sm mx-auto space-y-6 text-gray-800 transition-all duration-300 ${
                 showModal ? "blur-sm pointer-events-none select-none" : ""
                 }`}>
     
-    <h2 className="text-2xl font-semibold tracking-tight relative">
-      Cancel Slot <span className="block text-base text-gray-500">{selectedDate?format(selectedDate, "PPP"):"         "}</span>
+    <h2 className="text-2xl text-white font-semibold tracking-tight relative">
+      Cancel Slot <span className="block text-base text-white/70">{selectedDate?format(selectedDate, "PPP"):"         "}</span>
       
     </h2>
     {!isDetailedRoute && <ScrollableDateSelector setSelectedDate={setSelectedDate} selectedDate={selectedDate}/>}
     
-    <div className="flex flex-col space-y-2">
-      <div className="flex justify-between items-center bg-white rounded-2xl px-4 py-3 shadow-inner space-x-2">
+    <div className="flex flex-col space-y-2 min-w-80">
+      <div className="flex justify-between items-center backdrop-blur-md rounded-full border border-white/20 px-4 py-3 shadow-inner space-x-2">
         {[1, 2, 3].map((slot) => {
           const label = slot === 3 ? "Full Day" : `Slot ${slot}`;
           const slotKey = slot === 3 ? "fullDay" : `slot${slot}`;
@@ -167,16 +200,16 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
               key={slot}
               disabled={isSlotNotBooked(slot)}
               onClick={() => setSelectedSlot(slot)}
-              className={`text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200 flex flex-col ${
+              className={`text-sm  font-medium px-6 py-3 rounded-full transition-all duration-200 flex flex-col ${
                 isSlotNotBooked(slot)
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-black/20 text-gray-400 cursor-not-allowed"
                   : selectedSlot === slot
-                  ? "bg-gradient-to-tr from-slate-400 to-zinc-900 text-white shadow-md"
-                  : "bg-white text-gray-700 hover:bg-slate-100"
+                  ? "bg-white  shadow-md border border-white/40"
+                  : "bg-white/30  shadow-md  text-gray-700 hover:bg-white/50"
               }`}
             >
-              <span>{label}</span>
-              <span className="text-xs">{name}</span>
+            <span>{label}</span>
+            <span className="text-xs font-semibold">{name}</span>
             </button>
           );
         })}
@@ -198,7 +231,7 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
     <button
       onClick={handleCancel}
       disabled={!selectedSlot || !selectedDate}
-      className="w-full py-3 rounded-xl text-white font-semibold bg-gradient-to-r from-slate-400 to-zinc-900 hover:from-slate-500 hover:to-zinc-950 transition disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full py-3 rounded-full font-semibold text-black bg-white hover:bg-white/40 hover:text-white  transition disabled:opacity-60 disabled:cursor-not-allowed"
     >
       Cancel Slot
     </button>
@@ -215,9 +248,9 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
   </div>
   {showModal && (
   <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-lg text-center space-y-4">
-      <h3 className="text-xl font-semibold text-gray-800">Booking Confirmed</h3>
-      <p className="text-sm text-gray-600">Slot {showModal} has been successfully cancelled .</p>
+    <div className="bg-white/40 rounded-3xl p-8 max-w-sm w-full shadow-lg text-center space-y-4 backdrop-blur-sm">
+      <h3 className="text-xl font-semibold text-black">Cancel Confirmed</h3>
+      <p className="text-sm text-gray-900">Slot {showModal} has been successfully cancelled .</p>
       <button
         onClick={() => {
             setShowModal(false);
@@ -229,7 +262,7 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
 
 
         }}
-        className="mt-4 px-6 py-2 rounded-xl bg-gradient-to-r from-slate-400 to-zinc-900 text-white font-medium hover:from-slate-500 hover:to-zinc-950 transition"
+        className="mt-4 px-6 py-2 rounded-full bg-white text-black font-semibold hover:text-white hover:bg-white/40 transition"
       >
         Close
       </button>
@@ -279,7 +312,8 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
     }, [selectedDate])
 
     return (
-        <div className="">
+        <div className="bg-center bg-cover bg-repeat-space flex flex-col justify-center items-center  h-max min-h-screen"
+        style={{ backgroundImage: "url('/3.png')" }}>
                 <CancelCard
                     selectedDate={selectedDate}
                     setSelectedDate={setSelectedDate}
