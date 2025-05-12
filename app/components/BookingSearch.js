@@ -18,9 +18,9 @@ export default function BookingSearch({setSearchOpen }) {
     
     const delay = setTimeout(async () => {
       if (queryText.length > 2) {
-        console.log("hello")
+        //console.log("hello")
         const matches = await queryBookingsIndex(searchType, queryText);
-        console.log(matches)
+        //console.log(matches)
         setResults(matches);
         setShowResults(true);
         setSearchOpen(true);
@@ -61,7 +61,7 @@ export default function BookingSearch({setSearchOpen }) {
   const queryBookingsIndex = async (type, value) => {
    
     const bookingsRef = collection(db, "bookingsIndex");
-    console.log(bookingsRef)
+    //console.log(bookingsRef)
     const searchField = type === "bookingId" ? "bookingId" : "mobileNo";
   
     // Range query for prefix match
@@ -144,7 +144,7 @@ export default function BookingSearch({setSearchOpen }) {
     };
 
   const onSelectResult = async (result) => {
-    console.log(result)
+    //console.log(result)
    
 
     const reservationRef = doc(db, "reservations", result?.date);

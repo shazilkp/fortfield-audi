@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Breeze Launch",
+  title: "Breeze Lounge",
   description: "Booking Made Easy",
 };
 

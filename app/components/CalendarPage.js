@@ -121,7 +121,7 @@ const CalendarPage = ({SetView}) => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
 
-    console.log(start,end)
+    //console.log(start,end)
 
     const q = query(
       collection(db, "reservations"),
@@ -252,7 +252,7 @@ const CalendarPage = ({SetView}) => {
         {slots.map(({ key, label }) => {
 
           const slot = res?.[key];
-          console.log("slot",key)
+          //console.log("slot",key)
           return slot?.name ? (
             <div key={key} className="border rounded-lg p-3 flex justify-between items-center">
               <div>

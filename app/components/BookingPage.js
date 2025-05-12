@@ -338,7 +338,7 @@ const saveReservation = async (
             setSelectedDateData(null);
         }
         
-        console.log("world")
+        //console.log("world")
         const start = Timestamp.fromDate(startOfDay(selectedDate));
         const end = Timestamp.fromDate(endOfDay(selectedDate));
 
@@ -352,7 +352,7 @@ const saveReservation = async (
         setSelectedDateData(null);
         snapshot.forEach(doc => {
             const data = doc.data();
-            console.log(data)
+            //console.log(data)
             setSelectedDateData(data);
         });
 

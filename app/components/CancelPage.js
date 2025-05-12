@@ -12,7 +12,7 @@ import ScrollableDateSelector from "./ScrollableDateSelector";
 
 const cancelSlot = async (selectedDate, slot, setShowModal) => {
     const slotKey = slot === 3 ? "fullDay" : `slot${slot}`;
-    console.log(selectedDate, slotKey);
+    //console.log(selectedDate, slotKey);
     const reservationId = format(selectedDate, "yyyy-MM-dd");
   
   
@@ -79,7 +79,7 @@ const cancelSlot = async (selectedDate, slot, setShowModal) => {
     const renderSlot = (date, data, slotNo) => {
         const slotKey = slotNo == 3 ? "fullDay" : `slot${slotNo}`;
         const slotData = data ? slotNo ? data[slotKey] : {} : {};
-        console.log("trrr",slotKey)
+        //console.log("trrr",slotKey)
 
         return(
             <div className="backdrop-blur-md text-white rounded-2xl p-5 inset-shadow-2xs space-y-4 border border-white/20">
@@ -165,17 +165,12 @@ const cancelSlot = async (selectedDate, slot, setShowModal) => {
         }
         if (!isNaN(slotNo)) {
             setSelectedSlot(slotNo);
-            console.log("slot just selected on params",slotNo)
+            //console.log("slot just selected on params",slotNo)
         }
         
     },[params])
 
-    useEffect(() => {
-        if(!isDetailedRoute){
-            console.log(selectedDate);
-            console.log("trigered")
-        }
-    },[selectedDate,isDetailedRoute])
+    
   
     return (
         <div>
@@ -285,7 +280,7 @@ const cancelSlot = async (selectedDate, slot, setShowModal) => {
             setSelectedDateData(null);
         }
         
-        console.log("world")
+        //console.log("world")
         const start = Timestamp.fromDate(startOfDay(selectedDate));
         const end = Timestamp.fromDate(endOfDay(selectedDate));
 
@@ -299,7 +294,7 @@ const cancelSlot = async (selectedDate, slot, setShowModal) => {
         setSelectedDateData(null);
         snapshot.forEach(doc => {
             const data = doc.data();
-            console.log(data)
+            //console.log(data)
             setSelectedDateData(data);
         });
 
