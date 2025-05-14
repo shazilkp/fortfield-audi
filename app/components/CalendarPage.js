@@ -12,7 +12,9 @@ import { Cardo } from "next/font/google";
 
 
 const CalendarPage = ({SetView}) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const offsetInMilliseconds = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+
+  const [currentMonth, setCurrentMonth] = useState(new Date(Date.now() + offsetInMilliseconds));
   const [selectedDate, setSelectedDate] = useState("");
   const [reservations, setReservations] = useState({});
   const [selectedDateData,setSelectedDateData] = useState(null);
@@ -21,6 +23,7 @@ const CalendarPage = ({SetView}) => {
 
   const router = useRouter();
   const cardRef = useRef();
+  
 
   const ReservationCard = ({ data,setCardOpen }) => {
     
@@ -112,7 +115,7 @@ const CalendarPage = ({SetView}) => {
   
           {indi && renderSlot("Slot 1", slot1,1)}
           {indi && renderSlot("Slot 2", slot2,2)}
-          {(!indi || !data) && renderSlot("Full Day", fullDay,3)}
+          {(!indi || !data || !fullDay?.name) && renderSlot("Full Day", fullDay,3)}
         </div>
       );
   };
@@ -156,6 +159,7 @@ const CalendarPage = ({SetView}) => {
   }, [setCardOpen]);
 
   useEffect(() => {
+    console.log(currentMonth);
     fetchReservations();
   }, [currentMonth]);
 
@@ -290,7 +294,7 @@ const CalendarPage = ({SetView}) => {
       for (let i = 0; i < 7; i++) {
         const dateStr = format(day, "yyyy-MM-dd");
         const res = reservations[dateStr];
-        const isToday = isSameDay(day, new Date());
+        const isToday = isSameDay(day, new Date(Date.now() + offsetInMilliseconds));
         const isCurrentMonth = isSameMonth(day, monthStart);
         
         let textColor = "text-white"
@@ -387,7 +391,7 @@ const CalendarPage = ({SetView}) => {
      style={{ backgroundImage: "url('/11.jpg')" }}></div>
       <div
         
-        className={`flex flex-col bg-center bg-cover justify-around max-w-md mx-auto py-2.5 px-4 font-sans min-h-svh transition-all duration-300 ${
+        className={`flex flex-col bg-center bg-cover justify-around max-w-md mx-auto py-2.5 px-4 font-sans min-h-svh  ${
           cardOpen ? "blur-md pointer-events-none select-none" : ""
         }`}
       >
@@ -421,7 +425,7 @@ const CalendarPage = ({SetView}) => {
         
 
         <div 
-          className={`flex justify-between items-center gap-x-4 transition-all duration-300 ${
+          className={`flex justify-between items-center gap-x-4  ${
             searchOpen ? "blur-md pointer-events-none select-none" : ""
           }`}>
           <button
