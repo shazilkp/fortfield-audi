@@ -303,7 +303,7 @@ const CalendarPage = ({SetView}) => {
         const isToday = isSameDay(day, currTimee);
         const isCurrentMonth = isSameMonth(day, monthStart);
         
-        let textColor = "text-white"
+        let textColor = "text-white text-shadow-2xs text-shadow-blue-950"
         
         if(!isCurrentMonth){
           textColor = "text-white/40"
@@ -369,7 +369,7 @@ const CalendarPage = ({SetView}) => {
 
 
             {/* Centered Text */}
-            <div className={`absolute  inset-0 text-[0.8rem] flex justify-center text-white text-shadow-2xs text-shadow-blue-950 items-center`}>
+            <div className={`absolute  inset-0 text-[0.8rem] flex justify-center ${textColor}  items-center`}>
               {format(day, "d")}
             </div>
           </div>
