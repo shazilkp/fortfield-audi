@@ -14,7 +14,7 @@ import { Cardo } from "next/font/google";
 const CalendarPage = ({SetView}) => {
   const offsetInMilliseconds = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
 
-  const [currentMonth, setCurrentMonth] = useState(new Date(Date.now() + offsetInMilliseconds));
+  const [currentMonth, setCurrentMonth] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [reservations, setReservations] = useState({});
   const [selectedDateData,setSelectedDateData] = useState(null);
@@ -163,6 +163,10 @@ const CalendarPage = ({SetView}) => {
     fetchReservations();
   }, [currentMonth]);
 
+  useEffect(() =>{
+    setCurrentMonth(new Date());
+  },[CalendarPage]);
+
   const header = () => (
     <div className="flex justify-between items-center mb-4 ">
       <button className="text-white/40" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>←</button>
@@ -294,7 +298,9 @@ const CalendarPage = ({SetView}) => {
       for (let i = 0; i < 7; i++) {
         const dateStr = format(day, "yyyy-MM-dd");
         const res = reservations[dateStr];
-        const isToday = isSameDay(day, new Date(Date.now() + offsetInMilliseconds));
+        const currTimee = new Date();
+        console.log("trrr",currTimee); 
+        const isToday = isSameDay(day, currTimee);
         const isCurrentMonth = isSameMonth(day, monthStart);
         
         let textColor = "text-white"
