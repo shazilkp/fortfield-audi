@@ -300,7 +300,7 @@ const CalendarPage = ({SetView}) => {
         const dateStr = format(day, "yyyy-MM-dd");
         const res = reservations[dateStr];
         const currTimee = new Date();
-        console.log("trrr",currTimee); 
+       // console.log("trrr",currTimee); 
         const isToday = isSameDay(day, currTimee);
         const isCurrentMonth = isSameMonth(day, monthStart);
         

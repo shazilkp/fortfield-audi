@@ -1,5 +1,5 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp,getApp,getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth,onAuthStateChanged } from "firebase/auth";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -18,7 +18,16 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+
+try {
+  // Prevent reinitialization in dev/hot reload
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  console.log("Correct client init");
+} catch (error) {
+  console.error("🔥 Firebase initialization error:", error);
+}
+
 const db = getFirestore(app);
 const auth = getAuth(app);
 
