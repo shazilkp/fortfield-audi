@@ -4,8 +4,6 @@
 import React, { useState, useEffect } from "react";
 
 import CalendarPage from "../components/CalendarPage";
-import BookingPage from "../components/BookingPage";
-
 const Dashboard = () => {
   const [view,SetView] = useState("home");
   

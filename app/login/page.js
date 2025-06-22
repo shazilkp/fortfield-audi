@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { auth } from "@/firebase/client";
+import { signInWithCustomToken } from 'firebase/auth';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -15,6 +17,19 @@ export default function LoginForm() {
     setLoading(true);
     setError('');
     try {
+      // const res = await fetch('/api/login', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ email, password }),
+      // });
+
+      // if (!res.ok) {
+      //   const data = await res.json();
+      //   setError(data.error || 'Login failed');
+      //   setLoading(false);
+      //   return;
+      // }
+
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -27,10 +42,29 @@ export default function LoginForm() {
         setLoading(false);
         return;
       }
+      const data = await res.json();
+
+      const result = await signInWithCustomToken(auth, data.token);
+      const idToken = await result.user.getIdToken();
+
+      const cookieset = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+
+       if (!cookieset.ok) {
+        const data = await cookieset.json();
+        setError(data.error || 'Login failed');
+        setLoading(false);
+        return;
+      }
 
       // On success, redirect to dashboard
       window.location.href = '/dashboard';
     } catch (err) {
+      console.error("❌ Caught error:", err);
       setError('Network error');
       setLoading(false);
     }

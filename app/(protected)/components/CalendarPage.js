@@ -8,27 +8,27 @@ import {
 } from "date-fns";
 import { collection, getDocs, query, where,Timestamp } from "firebase/firestore";
 import { db } from "@/firebase"; 
-import { getAuth } from "firebase/auth";
-import { Cardo } from "next/font/google";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+
 
 
 const CalendarPage = ({SetView}) => {
   const offsetInMilliseconds = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
-
+  
   const [currentMonth, setCurrentMonth] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [reservations, setReservations] = useState({});
   const [selectedDateData,setSelectedDateData] = useState(null);
   const [cardOpen,setCardOpen] = useState(false);
   const [searchOpen,setSearchOpen] = useState(false);
-
+  
   const router = useRouter();
   const cardRef = useRef();
   
-
+  
   const ReservationCard = ({ data,setCardOpen }) => {
     
-
+    
 
     const {
       date = null,
@@ -37,13 +37,21 @@ const CalendarPage = ({SetView}) => {
       fullDay = {}
     } = data ?? {};
 
-    let indi = true;
-    if(fullDay?.name || fullDay?.mobileNo ){
-      indi = false;
+    let indisingle = false;
+    if((slot1?.name ||  slot2?.name) || (!slot1?.name && !slot2.name && !fullDay.name)){
+      indisingle = true;
     }
+    let indifull = true;
+
+    if((slot1?.name ||  slot2?.name)  ){
+        indifull = false;
+    }
+    // if(!fullDay?.name && !fullDay?.mobileNo && (!slot1?.name && !slot2?.name)){
+    //   indi = false;
+    // }
   
     const renderSlot = (title, slotData, slotNo) => (
-        <div className="bg-white/50 backdrop-blur-2xl rounded-2xl p-5 inset-shadow-2xs inset-shadow-gray-400 space-y-4 ">
+        <div className="bg-white/50 rounded-2xl p-5 inset-shadow-2xs inset-shadow-gray-400 space-y-4 ">
             <span className="flex flex-row justify-between items-center">
                 <h3 className="text-base font-semibold text-gray-800">{title}</h3>
                 <p className="text-slate-500 text-xs ">{slotData?.bookingId || "—"}</p>
@@ -54,12 +62,21 @@ const CalendarPage = ({SetView}) => {
             <div>
               <p className="font-medium">{slotData?.name || "—"}</p>
               <p className="text-gray-500">{slotData?.mobileNo || "—"}</p>
+              <p className="text-red-400">
+                <span className="text-xs text-gray-500 mr-1">Adv:</span>
+                <span className="font-medium">{slotData?.advance ? `₹${slotData.advance}` : '--'}</span>
+              </p>
             </div>
             <div className="text-right">
               <p>{slotData?.purpose || "—"}</p>
               <p className="text-xs text-gray-400">{slotData?.pax || 0} PAX</p>
+              <p className="text-red-400">
+                <span className="text-xs text-gray-500 mr-1">Amt:</span>
+                <span className="font-medium">{slotData?.amount ? `₹${slotData.amount}` : '--'}</span>
+              </p>
             </div>
           </div>
+
       
           <div className="flex justify-between items-center text-xs text-gray-500 border-t pt-3">
             <span className="italic">{slotData?.bookedBy || "—"}</span>
@@ -114,9 +131,9 @@ const CalendarPage = ({SetView}) => {
               </button>
           </div>
   
-          {indi && renderSlot("Slot 1", slot1,1)}
-          {indi && renderSlot("Slot 2", slot2,2)}
-          {(!indi || !data || !fullDay?.name) && renderSlot("Full Day", fullDay,3)}
+          {indisingle && renderSlot("Slot 1", slot1,1)}
+          {indisingle && renderSlot("Slot 2", slot2,2)}
+          {indifull && renderSlot("Full Day", fullDay,3)}
         </div>
       );
   };

@@ -22,15 +22,5 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    // User is signed in
-    console.log("From client User UID:", user.uid);
-    // Safe to make Firestore requests here!
-  } else {
-    // No user is signed in
-    console.log("From client No user is signed in.");
-  }
-});
 
 export { db, auth };

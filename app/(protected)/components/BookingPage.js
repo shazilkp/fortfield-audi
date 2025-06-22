@@ -6,7 +6,7 @@ import {
 } from "date-fns";
 import { collection, getDocs, query, where,Timestamp,getDoc,doc,setDoc,updateDoc } from "firebase/firestore";
 import { db } from "@/firebase"; 
-
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { writeBatch } from "firebase/firestore"; 
 
 import ScrollableDateSelector from "./ScrollableDateSelector";
@@ -20,6 +20,8 @@ const saveReservation = async (
     ac,
     name,
     bookingId,
+    amount,
+    advance,
     setShowModal,
     adminName
   ) => {
@@ -63,6 +65,8 @@ const saveReservation = async (
           name: name,
           pax: pax,
           purpose: purpose,
+          amount : amount,
+          advance : advance,
           bookingTimestamp: Timestamp.fromDate(new Date()),
           bookedBy: adminName,
           ac: ac,
@@ -91,6 +95,8 @@ const saveReservation = async (
 
 
   const BookingCard = ({ selectedDate,setSelectedDate, data, onBook }) => {
+
+    
     //console.log(data);
     const [phone, setPhone] = useState("");
     const [purpose,setPurpose] = useState("");
@@ -98,6 +104,8 @@ const saveReservation = async (
     const [ac,setAc] = useState(false);
     const [name,setName] = useState("");
     const [showModal, setShowModal] = useState(null);
+    const [amount,setAmount] = useState(0);
+    const [advance,setAdvance] = useState(0);
 
     const router = useRouter();
 
@@ -113,8 +121,55 @@ const saveReservation = async (
     //console.log(searchParams?.has("date"))
 
   
-    const formattedDate = format(selectedDate, "yyyy-MM-dd");
     //console.log("hey",data);
+    
+    const handleShare = async () => {
+      const formattedDate = format(date, "dd-MM-yyyy");
+      console.log(slot);
+      const time = slot === "1" ? "Slot 1" : (slot === "2" ? "Slot 2" : "Full");
+      const message = `
+        *Booking Confirmed!*
+
+        Hello *${name}*, your booking has been confirmed with booking ID *${showModal}*.
+
+        📅 *Date:* ${formattedDate}  
+        🕒 *Time:* ${time}  
+        💰 *Total amount:* ₹${amount}
+        💵 *Advance Paid:* ₹${advance}
+        💳 *Balance amount:* ₹${amount - advance}
+
+        Breeze Lounge, FortField
+        Pallipuram Rd, Pattambi
+      
+        Thank you for choosing us!
+        `.trim();
+      console.log("message : ",message);
+      const encodedMessage = encodeURIComponent(message);
+      console.log("encodedMessage : ", encodedMessage)
+      let phoneNumber = phone.replace(/^\+/, "");
+      if (!phoneNumber.startsWith("91")) {
+        phoneNumber = "91" + phoneNumber;
+      }
+      console.log("phone", phone)
+      console.log("name", name)
+      const whatsappURL = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodedMessage}`;
+      console.log(whatsappURL);
+      window.open(whatsappURL, "_blank");
+      // if (navigator.share) {
+      //   try {
+      //     await navigator.share({
+      //       title: "Booking Confirmed!",
+      //       text: message,
+      //       url: window.location.href, // Optional
+      //     });
+      //     console.log("Shared successfully");
+      //   } catch (err) {
+      //     console.error("Share failed", err);
+      //   }
+      // } else {
+      //   alert("Sharing not supported on this device.");
+      // }
+  };
   
     const isSlotBooked = (slot) =>{
         if(!data){
@@ -160,13 +215,13 @@ const saveReservation = async (
         
     const handleBooking = () => {
       if (!phone || !selectedSlot) return;
-      onBook(selectedDate,selectedSlot, phone,purpose,pax,ac,name,setShowModal );
-      setPhone("");
-      setSelectedSlot(null);
+      
+      onBook(selectedDate,selectedSlot, phone,purpose,pax,ac,name,amount,advance,setShowModal );
+     
     };
 
     useEffect(()=> {
-        const slotNo = Number(slot); // → NaN
+        const slotNo = Number(slot); 
         if (!isNaN(slotNo)) {
             setSelectedSlot(slotNo);
         }
@@ -241,8 +296,8 @@ const saveReservation = async (
       
       
 
-      <div className="space-y-2">
-      <label className="text-sm px-3 font-medium text-white">Pax</label>
+    <div className="space-y-2">
+      <label className="text-sm px-3 font-medium text-white/50">Pax</label>
       <input
         type="number"
         value={pax}
@@ -253,7 +308,7 @@ const saveReservation = async (
     </div>
 
       <div className="ml-3 flex flex-col space-y-2 items-center text-xs font-medium text-gray-700">
-        <label className="text-sm font-medium text-white">AC?</label>
+        <label className="text-sm font-medium text-white/50">AC?</label>
             <button
             onClick={() =>
                 setAc(!ac)
@@ -271,6 +326,34 @@ const saveReservation = async (
             
         </div>
     </div>
+    
+    <div className="flex flex-row gap-2">
+     
+    <div className="space-y-2">
+      <label className="text-sm px-3 font-medium text-white/50">Amount</label>
+      <input
+        type="number"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        min="1"
+        className="backdrop-blur-md  text-black w-full text-sm px-5 py-3 rounded-full border border-white/20 focus:outline-none no-spinner focus:ring-2 focus:ring-purple-400/40 bg-white/20 shadow-inner backdrop-opacity-40"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <label className="text-sm px-3 font-medium text-white/50">Advance</label>
+      <input
+        type="number"
+        value={advance}
+        onChange={(e) => setAdvance(e.target.value)}
+        min="1"
+        className="backdrop-blur-md  text-black w-full text-sm px-5 py-3 rounded-full border border-white/20 focus:outline-none no-spinner focus:ring-2 focus:ring-purple-400/40 bg-white/20 shadow-inner backdrop-opacity-40"
+      />
+    </div>
+
+    </div>
+
+
 
     {/* Toggle Switch */}
     <select
@@ -304,21 +387,35 @@ const saveReservation = async (
     <div className="bg-white/40 rounded-3xl p-6 max-w-sm w-full shadow-lg text-center space-y-4 ">
       <h3 className="text-xl font-semibold text-black">Booking Confirmed</h3>
       <p className="text-sm text-gray-900">Your slot has been booked successfully with booking ID {showModal}.</p>
+      <div className="flex flex-row gap-3 justify-around">
       <button
         onClick={() => {
             setShowModal(false);
             setSelectedDate(null);
+            setPhone(null);
+            setSelectedSlot(null);
             if(isDetailedRoute){
                 router.push("/dashboard")
             }
-            
-
-
         }}
         className="mt-4 px-6 py-2 rounded-full bg-white text-black font-semibold hover:text-white hover:bg-white/40 transition"
       >
         Close
       </button>
+      <button
+        onClick={() => {
+            handleShare();
+            // setShowModal(false);
+            // setSelectedDate(null);
+            // if(isDetailedRoute){
+            //     router.push("/dashboard")
+            // }
+        }}
+        className="mt-4 px-6 py-2 rounded-full bg-white text-black font-semibold hover:text-white hover:bg-white/40 transition"
+      >
+        Share
+      </button>
+      </div>
     </div>
   </div>
 )}
@@ -357,16 +454,34 @@ const saveReservation = async (
         });
 
     };
-    useEffect( () => {
-        async function getAdminName(){
-            const res = await fetch("/api/user");
-            const data = await res.json();
-            //console.log(data.name);
-            setAdminName(data.name) // Use this however you need
-        }
-        getAdminName();
+    // useEffect( () => {
+    //     async function getAdminName(){
+    //         const res = await fetch("/api/user");
+    //         const data = await res.json();
+    //         //console.log(data.name);
+    //         setAdminName(data.name) // Use this however you need
+    //     }
+    //     getAdminName();
 
-      }, []);
+    //   }, []);
+
+    useEffect(() => {
+      const auth = getAuth();
+
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          (async () => {
+            const tokenResult = await user.getIdTokenResult();
+            const nameFromClaims = tokenResult.claims.name;
+            setAdminName(nameFromClaims);
+          })();
+        } else {
+          setAdminName(null);
+        }
+      });
+
+      return () => unsubscribe();
+  }, []);
 
     useEffect(() => {
         
@@ -391,10 +506,10 @@ const saveReservation = async (
                     selectedDate={selectedDate}
                     setSelectedDate={setSelectedDate}
                     data={selectedDateData}
-                    onBook={(selectedDate,selectedSlot, phone,purpose,pax,ac,name,setShowModal ) => {
+                    onBook={(selectedDate,selectedSlot, phone,purpose,pax,ac,name,amount,advance,setShowModal ) => {
                         // Call Firestore or API here
                         const bookingId = generateBookingId(selectedDate);
-                        saveReservation(selectedDate,selectedSlot, phone,purpose,pax,ac,name,bookingId,setShowModal,adminName);
+                        saveReservation(selectedDate,selectedSlot, phone,purpose,pax,ac,name,bookingId,amount,advance,setShowModal,adminName);
                        
                     }}
                 />

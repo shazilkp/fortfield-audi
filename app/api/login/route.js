@@ -2,6 +2,7 @@ import { SignJWT } from "jose";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/firebase/admin"; // Adjust path as needed
+import * as admin from "firebase-admin";
 import bcrypt from "bcryptjs";
 
 
@@ -14,6 +15,7 @@ async function validateUser(email, password) {
     return null; // No user found
   }
 
+  
   const userDoc = snapshot.docs[0];
   const userData = userDoc.data();
 
@@ -37,22 +39,30 @@ export async function POST(request) {
   }
 
   // Create JWT
-  const jwt = await new SignJWT({ userId: user.id, email: user.email, name: user.name })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("2h")
-    .sign(new TextEncoder().encode(process.env.JWT_SECRET));
+  // const jwt = await new SignJWT({ userId: user.id, email: user.email, name: user.name })
+  //   .setProtectedHeader({ alg: "HS256" })
+  //   .setIssuedAt()
+  //   .setExpirationTime("2h")
+  //   .sign(new TextEncoder().encode(process.env.JWT_SECRET));
 
-  // Set cookie
-  cookies().set({
-    name: "auth-token",
-    value: jwt,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 2, // 2 hours
-    path: "/",
+
+  const customToken = await admin.auth().createCustomToken(user.id, {
+    email: user.email,
+    name: user.name,
   });
 
-  return NextResponse.json({ success: true });
+  
+  // Set cookie
+  // cookies().set({
+  //   name: "auth-token",
+  //   value: jwt,
+  //   httpOnly: true,
+  //   secure: process.env.NODE_ENV === "production",
+  //   sameSite: "lax",
+  //   maxAge: 60 * 60 * 2, // 2 hours
+  //   path: "/",
+  // });
+  
+  // console.log(customToken);
+  return NextResponse.json({ token: customToken });
 }
