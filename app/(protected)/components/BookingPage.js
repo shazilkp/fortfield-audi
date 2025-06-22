@@ -126,7 +126,7 @@ const saveReservation = async (
     const handleShare = async () => {
       const formattedDate = format(date, "dd-MM-yyyy");
       console.log(slot);
-      const time = slot === "1" ? "Slot 1" : (slot === "2" ? "Slot 2" : "Full");
+      const time = slot === "1" ? "Morning" : (slot === "2" ? "Evening" : "Full Day");
       const message = `
         *Booking Confirmed!*
 
@@ -143,15 +143,15 @@ const saveReservation = async (
       
         Thank you for choosing us!
         `.trim();
-      console.log("message : ",message);
+      // console.log("message : ",message);
       const encodedMessage = encodeURIComponent(message);
-      console.log("encodedMessage : ", encodedMessage)
+      // console.log("encodedMessage : ", encodedMessage)
       let phoneNumber = phone.replace(/^\+/, "");
       if (!phoneNumber.startsWith("91")) {
         phoneNumber = "91" + phoneNumber;
       }
-      console.log("phone", phone)
-      console.log("name", name)
+      // console.log("phone", phone)
+      // console.log("name", name)
       const whatsappURL = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodedMessage}`;
       console.log(whatsappURL);
       window.open(whatsappURL, "_blank");
