@@ -8,7 +8,8 @@ import {
 } from "date-fns";
 import { collection, getDocs, query, where,Timestamp } from "firebase/firestore";
 import { db } from "@/firebase"; 
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signOut } from 'firebase/auth';
+
 
 
 
@@ -194,6 +195,22 @@ const CalendarPage = ({SetView}) => {
       <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>→</button>
     </div>
   );
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/logout', { method: 'POST' });
+      if (res.ok) {
+        await signOut(getAuth()); 
+
+        window.location.href = '/login'; 
+      } else {
+        console.error('Failed to log out');
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
 
   const Header = () => {
     const [touchStartX, setTouchStartX] = useState(null);
@@ -421,14 +438,19 @@ const CalendarPage = ({SetView}) => {
       >
 
         <div className="flex flex-col justify-baseline space-y-8 -mt-11 z-10">
-        <div className="flex flex-col items-center  justify-center">
-        <img
-          src="/breeze-logo.png"
-          alt="Logo"
-          className="w-48"
-        />
+          <div className="flex items-center px-4 ">
+            {/* Centered logo with flex-grow */}
+            <div className="flex-1 flex justify-center">
+              <img src="/breeze-logo.png" alt="Logo" className="w-48" />
+            </div>
 
-        </div>
+            {/* Sign-out button pushed to far right */}
+            <button onClick={handleLogout} className="flex items-center gap-2 text-white px-4 bg-white/20 hover:bg-white/40 backdrop-blur-sm border border-white/20 focus:outline-none font-medium rounded-full text-sm py-3.5">
+              <img src="/logout.svg" alt="Sign out" className="w-4 h-4" />
+            </button>
+          </div>
+
+
 
         <BookingSearch setSearchOpen={setSearchOpen}></BookingSearch>
         
