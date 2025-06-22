@@ -138,10 +138,11 @@ const saveReservation = async (
         💵 *Advance Paid:* ₹${advance}
         💳 *Balance amount:* ₹${amount - advance}
 
-        Breeze Lounge, FortField
-        Pallipuram Rd, Pattambi
+      Breeze Lounge,
+      FortField Building
+      Pallipuram Rd, Pattambi
       
-        Thank you for choosing us!
+      Thank you for choosing us!
         `.trim();
       // console.log("message : ",message);
       const encodedMessage = encodeURIComponent(message);
