@@ -392,7 +392,7 @@ const saveReservation = async (
         onClick={() => {
             setShowModal(false);
             setSelectedDate(null);
-            setPhone(null);
+            setPhone("");
             setSelectedSlot(null);
             if(isDetailedRoute){
                 router.push("/dashboard")
@@ -405,11 +405,13 @@ const saveReservation = async (
       <button
         onClick={() => {
             handleShare();
-            // setShowModal(false);
-            // setSelectedDate(null);
-            // if(isDetailedRoute){
-            //     router.push("/dashboard")
-            // }
+            setShowModal(false);
+            setSelectedDate(null);
+            setPhone("");
+            setSelectedSlot(null);
+            if(isDetailedRoute){
+                router.push("/dashboard")
+            }
         }}
         className="mt-4 px-6 py-2 rounded-full bg-white text-black font-semibold hover:text-white hover:bg-white/40 transition"
       >
